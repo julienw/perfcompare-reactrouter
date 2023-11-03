@@ -10,23 +10,26 @@ import {
 import { ErrorPage } from "./error-page";
 import "./index.css";
 
-const router = createBrowserRouter([
-  {
-    element: <Root />,
-    errorElement: <ErrorPage />,
-    children: [
-      {
-        path: "/",
-        element: <Home />,
-      },
-      {
-        path: "/compare-results",
-        element: <CompareResults />,
-        loader: compareLoader,
-      },
-    ],
-  },
-]);
+const router = createBrowserRouter(
+  [
+    {
+      element: <Root />,
+      errorElement: <ErrorPage />,
+      children: [
+        {
+          path: "/",
+          element: <Home />,
+        },
+        {
+          path: "/compare-results",
+          element: <CompareResults />,
+          loader: compareLoader,
+        },
+      ],
+    },
+  ],
+  { basename: import.meta.env.BASE_URL },
+);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
