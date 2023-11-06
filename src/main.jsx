@@ -7,6 +7,7 @@ import {
   CompareResults,
   loader as compareLoader,
 } from "./routes/compare-results";
+import { loader as recentRevisionsLoader } from "./routes/recent-revisions";
 import { ErrorPage } from "./error-page";
 import "./index.css";
 
@@ -24,6 +25,10 @@ const router = createBrowserRouter(
           path: "/compare-results",
           element: <CompareResults />,
           loader: compareLoader,
+        },
+        {
+          path: "/api/search/:repository/:searchTerm",
+          loader: recentRevisionsLoader,
         },
       ],
     },
