@@ -1,4 +1,4 @@
-import { useLoaderData, useSearchParams } from "react-router-dom";
+import { useLoaderData } from "react-router-dom";
 
 export const treeherderBaseURL = "https://treeherder.mozilla.org";
 
