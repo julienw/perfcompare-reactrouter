@@ -26,8 +26,18 @@ const router = createBrowserRouter(
           element: <CompareResults />,
           loader: compareLoader,
         },
+      ],
+    },
+    {
+      path: "/api/recent-revisions/:repository",
+      loader: recentRevisionsLoader,
+      children: [
         {
-          path: "/api/search/:repository/:searchTerm",
+          path: "by-author/:author",
+          loader: recentRevisionsLoader,
+        },
+        {
+          path: "by-hash/:hash",
           loader: recentRevisionsLoader,
         },
       ],

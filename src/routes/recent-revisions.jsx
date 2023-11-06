@@ -1,27 +1,21 @@
 export const treeherderBaseURL = "https://treeherder.mozilla.org";
 
-const emailMatch = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const hashMatch = /\b[a-f0-9]+\b/;
-
-function computeUrlFromSearchTermAndRepository(searchTerm, repository) {
+function computeUrlFromSearchTermAndRepository({ repository, hash, author }) {
   const baseUrl = `${treeherderBaseURL}/api/project/${repository}/push/`;
 
-  if (!searchTerm) {
-    return baseUrl + "?hide_reviewbot_pushes=true";
+  if (author) {
+    return baseUrl + "?author=" + encodeURIComponent(author);
   }
 
-  if (emailMatch.test(searchTerm)) {
-    return baseUrl + "?author=" + encodeURIComponent(searchTerm);
+  if (hash) {
+    return baseUrl + "?revision=" + hash;
   }
 
-  if (emailMatch.test(hashMatch)) {
-    return baseUrl + "?revision=" + searchTerm;
-  }
-
-  throw new Error(`Invalid search term ${searchTerm}`);
+  return baseUrl + "?hide_reviewbot_pushes=true";
 }
-async function fetchRecentRevisionsOnTreeherder({ searchTerm, repository }) {
-  const url = computeUrlFromSearchTermAndRepository(searchTerm, repository);
+
+async function fetchRecentRevisionsOnTreeherder(params) {
+  const url = computeUrlFromSearchTermAndRepository(params);
   const response = await fetch(url);
 
   if (!response.ok) {
@@ -37,13 +31,9 @@ async function fetchRecentRevisionsOnTreeherder({ searchTerm, repository }) {
   }
 
   const json = await response.json();
-  if (!json.results.length) {
-    throw new Error(`Error when requesting treeherder: no results found.`);
-  }
   return json.results;
 }
 
 export async function loader({ params }) {
-  const { searchTerm, repository } = params;
-  return await fetchRecentRevisionsOnTreeherder({ searchTerm, repository });
+  return await fetchRecentRevisionsOnTreeherder(params);
 }

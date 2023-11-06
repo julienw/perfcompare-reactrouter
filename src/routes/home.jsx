@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Form } from "react-router-dom";
+import { useState, useRef } from "react";
+import { Form, useFetcher } from "react-router-dom";
 import "./home.css";
 
 const repos = [
@@ -24,11 +24,16 @@ const frameworkMap = {
   16: "fxrecord",
 };
 
-function RepositorySelect({ name, id }) {
+function RepositorySelect({ name, id, repository, onRepoChange }) {
   return (
     <>
       <label htmlFor={id ?? name}>Repository</label>
-      <select name={name} id={id ?? name}>
+      <select
+        name={name}
+        id={id ?? name}
+        value={repository}
+        onChange={(e) => onRepoChange(e.currentTarget.value)}
+      >
         {repos.map((repo) => (
           <option key={repo} value={repo}>
             {repo}
@@ -51,32 +56,136 @@ function FrameworkSelect() {
   );
 }
 
+function RevisionSelector({
+  allRecentRevisions,
+  maxRev,
+  selectedRevisions,
+  onChangeSelectedRevisions,
+}) {
+  return allRecentRevisions ? (
+    <ul>
+      {allRecentRevisions.map((revision) => {
+        const {
+          repository_id,
+          id,
+          revisions,
+          revision: hash,
+          author,
+        } = revision;
+        const isTry = repository_id === 4;
+        const lastUsefulRevision =
+          isTry && revisions.length > 1 ? revisions[1] : revisions[0];
+        const lastUsefulSummary = lastUsefulRevision.comments.slice(
+          0,
+          lastUsefulRevision.comments.indexOf("\n"),
+        );
+        return (
+          <li key={id}>
+            {author} - {hash.slice(0, 7)} - {lastUsefulSummary}
+          </li>
+        );
+      })}
+    </ul>
+  ) : (
+    <div>Loading...</div>
+  );
+}
+
+const emailMatch = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const hashMatch = /\b[a-f0-9]+\b/;
+
+// Type is "base" or "new", only used to derive classes and ids
+// MaxRev is >= 1, maximum number of values that can be added.
+function RevisionSelectForm({ type, maxRev }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [repository, setRepository] = useState("mozilla-central");
+  const [isDropdownDisplayed, setIsDropdownDisplayed] = useState(false);
+  const [selectedRevisions, setSelectedRevisions] = useState([]);
+
+  const fetcher = useFetcher();
+  const TIMEOUT = 500;
+
+  const idleTimeoutRef = useRef(null);
+
+  function loadRecentRevisions() {
+    let apiUrl = `/api/recent-revisions/${repository}`;
+
+    if (emailMatch.test(searchTerm)) {
+      apiUrl += "/by-author/" + encodeURIComponent(searchTerm);
+    } else if (hashMatch.test(searchTerm)) {
+      apiUrl += "/by-hash/" + encodeURIComponent(searchTerm);
+    } else if (searchTerm) {
+      // This is an error case, display an error.
+      console.error(`${searchTerm} isn't correct, try again.`);
+      return;
+    }
+
+    fetcher.load(apiUrl);
+  }
+
+  function onIdleTimeout() {
+    idleTimeoutRef.current = null;
+    loadRecentRevisions();
+  }
+
+  function onSearchTermChange(e) {
+    setSearchTerm(e.currentTarget.value);
+    clearTimeout(idleTimeoutRef.current);
+    idleTimeoutRef.current = setTimeout(onIdleTimeout, TIMEOUT);
+  }
+
+  function onInputFocus() {
+    setIsDropdownDisplayed(true);
+    loadRecentRevisions();
+  }
+
+  function onInputBlur() {
+    setIsDropdownDisplayed(false);
+  }
+
+  function onInputKeyDown(e) {
+    if (e.key === "Enter") {
+      e.preventDefault(); // Avoid submitting the form
+      loadRecentRevisions();
+    }
+  }
+
+  const inputId = type + "Rev";
+
+  return (
+    <div>
+      <RepositorySelect
+        name={type + "Repo"}
+        repository={repository}
+        onRepoChange={(repo) => setRepository(repo)}
+      />
+      <label htmlFor={inputId}>Base revision</label>
+      <input
+        type="text"
+        id={inputId}
+        value={searchTerm}
+        onChange={onSearchTermChange}
+        onFocus={onInputFocus}
+        onBlur={onInputBlur}
+        onKeyDown={onInputKeyDown}
+      />
+      {isDropdownDisplayed ? (
+        <RevisionSelector
+          maxRev={maxRev}
+          allRecentRevisions={fetcher.data}
+          selectedRevisions={selectedRevisions}
+          onChangeSelectedRevisions={setSelectedRevisions}
+        />
+      ) : null}
+    </div>
+  );
+}
+
 export function Home() {
-  const [newRevCount, setNewRevCount] = useState(1);
-  const incRevCount = () => setNewRevCount((state) => state + 1);
-  const decRevCount = () => setNewRevCount((state) => state - 1);
   return (
     <Form action="/compare-results" className="compare-results-form">
-      <div>
-        <RepositorySelect name="baseRepo" />
-        <label htmlFor="baseRev">Base revision</label>
-        <input type="text" name="baseRev" id="baseRev" />
-      </div>
-      {Array.from({ length: newRevCount }).map((_, i) => (
-        <div key={i}>
-          <RepositorySelect name="newRepo" id={`newRepo${i}`} />
-          <label htmlFor={`newRev${i}`}>New revision</label>
-          <input type="text" name="newRev" id={`newRev${i}`} />
-          <button type="button" onClick={incRevCount}>
-            +
-          </button>
-          {i > 0 ? (
-            <button type="button" onClick={decRevCount}>
-              -
-            </button>
-          ) : null}
-        </div>
-      ))}
+      <RevisionSelectForm type="base" maxRev={1} />
+      <RevisionSelectForm type="new" maxRev={3} />
       <div>
         <FrameworkSelect />
       </div>
