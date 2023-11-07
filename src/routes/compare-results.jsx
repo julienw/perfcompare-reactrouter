@@ -79,13 +79,13 @@ export async function loader({ request }) {
   );
 
   // Now merge all results
-  const results = resultsGroupedBySuite[0];
+  const results = { ...resultsGroupedBySuite[0] };
   for (let i = 1; i < resultsGroupedBySuite.length; i++) {
-    for (const suite of Object.keys(resultsGroupedBySuite)) {
+    for (const suite of Object.keys(resultsGroupedBySuite[i])) {
       if (!results[suite]) {
         results[suite] = [];
       }
-      results[suite].push(...resultsGroupedBySuite[suite]);
+      results[suite].push(...resultsGroupedBySuite[i][suite]);
     }
   }
 
@@ -100,8 +100,8 @@ export function CompareResults() {
       {Object.entries(results).map(([suite, resultsBySuite]) => (
         <div key={suite} className="suite-group">
           <h2>{suite}</h2>
-          {resultsBySuite.map((result) => (
-            <div key={`${result.platform}-${result.new_rev}`}>
+          {resultsBySuite.map((result, i) => (
+            <div key={i}>
               base: {result.base_rev}, new: {result.new_rev}, suite:{" "}
               {result.suite} ({result.platform})
             </div>
