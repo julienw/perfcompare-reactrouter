@@ -46,6 +46,7 @@ jobs:
 
       - run: npm ci
       - run: npm run build -- --base=/$(basename "$GITHUB_REPOSITORY")
+      - run: cp dist/index.html dist/404.html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
