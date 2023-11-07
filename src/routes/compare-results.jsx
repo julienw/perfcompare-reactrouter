@@ -42,14 +42,8 @@ export async function loader({ request }) {
   const baseRev = url.searchParams.get("baseRev");
   const baseRepo = url.searchParams.get("baseRepo");
   const newRevs = url.searchParams.getAll("newRev");
-  const newRepos = url.searchParams.getAll("newRepo");
+  const newRepo = url.searchParams.get("newRepo");
   const framework = url.searchParams.get("framework");
-
-  if (newRevs.length !== newRepos.length) {
-    throw new Error(
-      `newRevs.length (${newRevs.length}) is different than newRepos.length (${newRepos.length})`,
-    );
-  }
 
   const promises = [];
   if (newRevs.length) {
@@ -59,7 +53,7 @@ export async function loader({ request }) {
           baseRev,
           baseRepo,
           newRev: newRevs[i],
-          newRepo: newRepos[i],
+          newRepo,
           framework,
         }),
       );

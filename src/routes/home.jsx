@@ -62,6 +62,32 @@ function RevisionSelector({
   selectedRevisions,
   onChangeSelectedRevisions,
 }) {
+  function onCheckRevision(hash) {
+    if (maxRev === 1) {
+      // Special case the max rev = 1 case
+      if (selectedRevisions.length && selectedRevisions[0] === hash) {
+        onChangeSelectedRevisions([]);
+      } else {
+        onChangeSelectedRevisions([hash]);
+      }
+      return;
+    }
+
+    const selectedRevisionsSet = new Set(selectedRevisions);
+    if (selectedRevisionsSet.has(hash)) {
+      selectedRevisionsSet.delete(hash);
+    } else {
+      selectedRevisionsSet.add(hash);
+    }
+
+    if (selectedRevisionsSet.size > maxRev) {
+      console.error(`Can't check more than ${maxRev} revisions, sorry :-)`);
+      return;
+    }
+
+    onChangeSelectedRevisions([...selectedRevisionsSet]);
+  }
+
   return allRecentRevisions ? (
     <ul>
       {allRecentRevisions.map((revision) => {
@@ -79,9 +105,17 @@ function RevisionSelector({
           0,
           lastUsefulRevision.comments.indexOf("\n"),
         );
+        const isChecked = selectedRevisions.includes(hash);
         return (
           <li key={id}>
-            {author} - {hash.slice(0, 7)} - {lastUsefulSummary}
+            <label>
+              <input
+                type="checkbox"
+                onChange={() => onCheckRevision(hash)}
+                checked={isChecked}
+              />{" "}
+              {author} - {hash.slice(0, 7)} - {lastUsefulSummary}
+            </label>
           </li>
         );
       })}
@@ -140,7 +174,14 @@ function RevisionSelectForm({ type, maxRev }) {
   }
 
   function onInputBlur() {
-    setIsDropdownDisplayed(false);
+    // We need some more complex logic to make it disappear, let's forget about
+    // it for now.
+    //setIsDropdownDisplayed(false);
+  }
+
+  function onRepoChange(repo) {
+    setRepository(repo);
+    loadRecentRevisions();
   }
 
   function onInputKeyDown(e) {
@@ -150,14 +191,15 @@ function RevisionSelectForm({ type, maxRev }) {
     }
   }
 
-  const inputId = type + "Rev";
+  const inputId = type + "RevSearch";
+  const formRevName = type + "Rev";
 
   return (
     <div>
       <RepositorySelect
         name={type + "Repo"}
         repository={repository}
-        onRepoChange={(repo) => setRepository(repo)}
+        onRepoChange={onRepoChange}
       />
       <label htmlFor={inputId}>Base revision</label>
       <input
@@ -169,6 +211,20 @@ function RevisionSelectForm({ type, maxRev }) {
         onBlur={onInputBlur}
         onKeyDown={onInputKeyDown}
       />
+      {selectedRevisions.length ? (
+        <ul>
+          {selectedRevisions.map((selectedRevision) => (
+            <li key={selectedRevision}>
+              {selectedRevision}
+              <input
+                type="hidden"
+                name={formRevName}
+                value={selectedRevision}
+              />
+            </li>
+          ))}
+        </ul>
+      ) : null}
       {isDropdownDisplayed ? (
         <RevisionSelector
           maxRev={maxRev}
