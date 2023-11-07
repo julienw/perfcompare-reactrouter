@@ -1,4 +1,5 @@
-import { useLoaderData } from "react-router-dom";
+import { useLoaderData, useSearchParams } from "react-router-dom";
+import { SelectRevisionsForm } from "./components/select-revisions-form";
 
 export const treeherderBaseURL = "https://treeherder.mozilla.org";
 
@@ -89,25 +90,35 @@ export async function loader({ request }) {
     }
   }
 
-  return results;
+  return { results, baseRev, baseRepo, newRevs, newRepo, framework };
 }
 
 export function CompareResults() {
-  const results = useLoaderData();
+  const { results, baseRev, baseRepo, newRevs, newRepo, framework } =
+    useLoaderData();
 
   return (
-    <div>
-      {Object.entries(results).map(([suite, resultsBySuite]) => (
-        <div key={suite} className="suite-group">
-          <h2>{suite}</h2>
-          {resultsBySuite.map((result, i) => (
-            <div key={i}>
-              base: {result.base_rev}, new: {result.new_rev}, suite:{" "}
-              {result.suite} ({result.platform})
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
+    <>
+      <SelectRevisionsForm
+        initialBaseSelectedRevision={baseRev}
+        initialNewSelectedRevisions={newRevs}
+        initialBaseRepo={baseRepo}
+        initialNewRepo={newRepo}
+        initialFramework={framework}
+      />
+      <div>
+        {Object.entries(results).map(([suite, resultsBySuite]) => (
+          <div key={suite} className="suite-group">
+            <h2>{suite}</h2>
+            {resultsBySuite.map((result, i) => (
+              <div key={i}>
+                base: {result.base_rev}, new: {result.new_rev}, suite:{" "}
+                {result.suite} ({result.platform})
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
